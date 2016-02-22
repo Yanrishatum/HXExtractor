@@ -24,7 +24,7 @@ enum ImageCommand
 }
 
 /**
- * ...
+ * Image generation class. Can be used to rasterize some data and save it as PNG file.
  * @author Yanrishatum
  */
 class ImageGen

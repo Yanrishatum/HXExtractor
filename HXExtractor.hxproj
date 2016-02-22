@@ -24,7 +24,7 @@
     <option noInlineOnDebug="False" />
     <option mainClass="Main" />
     <option enabledebug="False" />
-    <option additional="-D hscriptPos&#xA;-D dce=no" />
+    <option additional="-D hscriptPos&#xA;-D dce=no&#xA;--macro MacroUtils.makeApiMd()" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
@@ -42,7 +42,7 @@
   <!-- Executed before build -->
   <preBuildCommand />
   <!-- Executed after build -->
-  <postBuildCommand alwaysRun="False" />
+  <postBuildCommand alwaysRun="False">Copy.bat</postBuildCommand>
   <!-- Other project options -->
   <options>
     <option showHiddenPaths="False" />

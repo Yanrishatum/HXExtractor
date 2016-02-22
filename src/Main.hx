@@ -5,6 +5,7 @@ import cpp.vm.Thread;
 import haxe.io.Eof;
 import haxe.io.Input;
 import haxe.io.Path;
+import haxe.Json;
 import haxe.Log;
 import hscript.Expr;
 import hscript.Interp;
@@ -25,6 +26,23 @@ class Main
   public static var display:Bool = false;
   public static var fileNameToFolder:Bool = false;
   public static var onEof:Array<Void->Void>;
+  
+  public static var quickAccess:Map<String, Dynamic> =
+  [
+    "Math" => Math,
+    "StringTools" => StringTools,
+    "Path" => Path,
+    "ImageGen" => ImageGen,
+    "Std" => Std,
+    "Reflect" => Reflect,
+    "EReg" => EReg,
+    "Xml" => Xml,
+    "Json" => Json,
+    "String" => String,
+    "fromCharCode" => String.fromCharCode,
+    "Sys" => Sys,
+    "sys" => { io: { File:File }, FileSystem:FileSystem }
+  ];
   
   public static var thread:Thread;
   
@@ -54,8 +72,8 @@ class Main
     }
     else
     {
-      Sys.println("API:");
-      Sys.println(MacroUtils.makeReadme());
+      //Sys.println("API:");
+      //Sys.println(MacroUtils.makeReadme());
     }
 	}
 	

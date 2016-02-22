@@ -6,6 +6,7 @@ import haxe.io.Path;
 import hscript.Expr;
 import hscript.Interp;
 import hscript.Parser;
+import sys.FileStat;
 import sys.FileSystem;
 import sys.io.File;
 import sys.io.FileInput;
@@ -20,6 +21,7 @@ class ScriptContainer
 
   public var inputs:Map<Int, FileInput>;
   public var inputNames:Map<String, Int>;
+  public var inputStats:Map<Int, FileStat>;
   public var freeInputSlots:Array<Int>;
   
   public var defaultInput:Int;
@@ -69,6 +71,7 @@ class ScriptContainer
   {
     inputs = new Map();
     inputNames = new Map();
+    inputStats = new Map();
     freeInputSlots = new Array();
     
     defaultInput = 0;
@@ -104,11 +107,10 @@ class ScriptContainer
   private inline function createInterp(n:String):Void
   {
     interp = new CustomInterp(n, scriptRaw);
-    interp.variables.set("Math", Math);
-    interp.variables.set("StringTools", StrTools); // By unknown reason StringTools are empty on runtime.
-    interp.variables.set("Path", Path);
-    interp.variables.set("ImageGen", ImageGen);
-    interp.variables.set("Std", Std);
+    for (key in Main.quickAccess.keys())
+    {
+      interp.variables.set(key, Main.quickAccess.get(key));
+    }
     
     var fields:Array<String> = Type.getInstanceFields(ScriptAPI);
     for (field in fields)

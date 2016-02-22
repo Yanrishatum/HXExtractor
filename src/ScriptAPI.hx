@@ -1,7 +1,9 @@
 package;
 import cpp.vm.Thread;
+import haxe.Http;
 import haxe.io.Bytes;
 import haxe.io.BytesData;
+import haxe.io.BytesOutput;
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
@@ -9,7 +11,7 @@ import sys.io.FileInput;
 import sys.io.FileSeek;
 
 /**
- * ...
+ * The main API functions available from scripts.  
  * @author Yanrishatum
  */
 class ScriptAPI
@@ -49,6 +51,22 @@ class ScriptAPI
     return c.args[index];
   }
   
+  /**
+   * Returns a *copy* of script arguments.
+   */
+  public function args():Array<String>
+  {
+    return c.args.copy();
+  }
+  
+  /**
+   * Returns amount of arguments passed to script.
+   */
+  public function argCount():Int
+  {
+    return c.args.length;
+  }
+  
   //==========================================================
   // Advanced usage and multithreading.
   //==========================================================
@@ -80,7 +98,7 @@ class ScriptAPI
   }
   
   /**
-   * Sends message to main thread.
+   * [Advanced usage] Sends message to main thread.
    */
   public function sendToMainThread(msg:Dynamic):Void
   {
@@ -88,7 +106,7 @@ class ScriptAPI
   }
   
   /**
-   * Reads message from another threads.
+   * [Advanced usage] Reads message from another threads.
    */
   public function readMessage(block:Bool):Dynamic
   {
@@ -99,6 +117,20 @@ class ScriptAPI
   // Input manipulation
   //==========================================================
   
+  /**
+   * Reads contents of folder at given `path` and returns file/folder names.
+   */
+  public function readFolder(path:String):Array<String>
+  {
+    if (isFolder(path)) return FileSystem.readDirectory(path);
+    return null;
+  }
+  
+  /**
+   * Propmpt user to write default output folder.  
+   * Note that if script has passed arguments, output folder will be set from them, reducing the size of argument list.  
+   * If `message` specified, it's content displayed instead of default text.
+   */
   public function requestOutputFolder(message:String = null):Void
   {
     if (c.args.length > 0) // Provided by arguments.
@@ -113,6 +145,11 @@ class ScriptAPI
     }
   }
   
+  /**
+   * Propmt user to write additional argument to script.
+   * Note that if script has passed arguments, next argument will be returned, reducing the size of argument list.  
+   * If `message` specified, it's content displayed instead of default text.
+   */
   public function requestArgument(message:String = null):String
   {
     if (c.args.length > 0) // Provided by arguments.
@@ -128,7 +165,11 @@ class ScriptAPI
   }
   
   /**
-   * Requests input file. Arguments for script taken first.
+   * Propmt user to specify input file and returns it's index.  
+   * If `index` specified (default = -1), file will be loaded at that index, otherwise index will be assigned automatically.  
+   * Note that if script has passed arguments, next argument will be used as file path, reducing the size of argument list.  
+   * If `message` specified, it's content displayed instead of default text.  
+   * If file cannot be opened, error is printed and returned index = -1.
    */
   public function requestInput(message:String = null, index:Int = -1):Int
   {
@@ -150,7 +191,9 @@ class ScriptAPI
   }
   
   /**
-   * Opens file for input.
+   * Opens a file at `path` and returns it's index.
+   * If `index` specified (default = -1), file will be loaded at that index, otherwise index will be assigned automatically.  
+   * If file cannot be opened, error is printed and returned index = -1.
    */
   public function openInput(path:String, index:Int = -1):Int
   {
@@ -169,6 +212,7 @@ class ScriptAPI
     {
       c.inputs.set(index, File.read(path));
       c.inputNames.set(path, index);
+      c.inputStats.set(index, FileSystem.stat(path));
       return index;
     }
     catch (e:Dynamic)
@@ -179,7 +223,7 @@ class ScriptAPI
   }
   
   /**
-   * Closes opened input file.
+   * Closes active file at `index`.
    */
   public function closeInput(index:Int):Void
   {
@@ -193,7 +237,8 @@ class ScriptAPI
   }
   
   /**
-   * Sets active input file which used by default.
+   * Sets active input `file` which used by default (when index = -1).  
+   * Default input file index is 0.
    */
   public function setActive(file:Int):Void
   {
@@ -201,7 +246,8 @@ class ScriptAPI
   }
   
   /**
-   * Resets active ipnut file. Equivalent to setActive(0);
+   * Resets active ipnut file.  
+   * Equivalent to `setActive(0);`
    */
   public function resetActive():Void
   {
@@ -209,7 +255,7 @@ class ScriptAPI
   }
   
   /**
-   * Sets bigEndian to selected input.
+   * Sets `bigEndian` byte-order to selected input.
    */
   public function bigEndian(file:Int = -1):Void
   {
@@ -217,7 +263,7 @@ class ScriptAPI
   }
   
   /**
-   * Sets littleEndian to selected input.
+   * Sets `littleEndian` byte-order to selected input.
    */
   public function littleEndian(file:Int = -1):Void
   {
@@ -229,7 +275,8 @@ class ScriptAPI
   //==========================================================
   
   /**
-   * Checks string in input equals to expected string.
+   * Checks string in input equals to expected `string`.  
+   * `file` argument specifies input file index.
    */
   public function checkString(string:String, file:Int = -1):Bool
   {
@@ -237,7 +284,8 @@ class ScriptAPI
   }
   
   /**
-   * Checks next byte in input equals to expected byte.
+   * Checks next byte in input equals to expected `byte`.  
+   * `file` argument specifies input file index.
    */
   public function checkByte(byte:Int, file:Int = -1):Bool
   {
@@ -245,33 +293,54 @@ class ScriptAPI
   }
   
   /**
-   * Checks next short equals to expected short.
+   * Checks next short equals to expected short.  
+   * `file` argument specifies input file index.
    */
   public function checkInt16(int16:Int, file:Int = -1):Bool
   {
     return input(file).readInt16() == (int16 & 0xFFFF);
   }
   
+  /**
+   * Checks next 3 bytes equals to expected value.  
+   * `file` argument specifies input file index.
+   */
   public function checkInt24(int24:Int, file:Int = -1):Bool
   {
     return input(file).readInt24() == (int24 & 0xFFFFFF);
   }
   
+  /**
+   * Checks next integer equals to expected value.  
+   * `file` argument specifies input file index.
+   */
   public function checkInt32(int32:Int, file:Int = -1):Bool
   {
     return input(file).readInt32() == int32;
   }
   
+  /**
+   * Checks next float equals to expected value.  
+   * `file` argument specifies input file index.
+   */
   public function checkFloat(f:Float, file:Int = -1):Bool
   {
     return input(file).readFloat() == f;
   }
   
+  /**
+   * Checks next double equals to expected value.  
+   * `file` argument specifies input file index.
+   */
   public function checkDouble(f:Float, file:Int = -1):Bool
   {
     return input(file).readDouble() == f;
   }
   
+  /**
+   * Checks next amount of bytes are equals to expected byte-order.  
+   * `file` argument specifies input file index.
+   */
   public function checkBytes(b:Bytes, file:Int = -1):Bool
   {
     var f:FileInput = input(file);
@@ -283,6 +352,10 @@ class ScriptAPI
     return true;
   }
   
+  /**
+   * Checks next amount of bytes are equals to expected byte-order.  
+   * `file` argument specifies input file index.
+   */
   public function checkArrayOfBytes(arr:Array<Int>, file:Int = -1):Bool
   {
     var f:FileInput = input(file);
@@ -324,21 +397,33 @@ class ScriptAPI
   // Data gathering.
   //==========================================================
   
+  /**
+   * Reads next byte in input `file`.
+   */
   public function getByte(file:Int = -1):Int
   {
     return input(file).readByte();
   }
   
+  /**
+   * Reads next short in input `file`.
+   */
   public function getInt16(file:Int = -1):Int
   {
     return input(file).readInt16();
   }
   
+  /**
+   * Reads next 3 bytes in input `file`.
+   */
   public function getInt24(file:Int = -1):Int
   {
     return input(file).readInt24();
   }
   
+  /**
+   * Reads next integer in input `file`.
+   */
   public function getInt32(file:Int = -1):Int
   {
     return input(file).readInt32();
@@ -353,7 +438,7 @@ class ScriptAPI
   }
   
   /**
-   * Reads string with Int32 length prefix.
+   * Reads string with Int32 length prefix.  
    * Analogue to `getString(getInt32(file), file);`
    */
   public function getString32(file:Int = -1):String
@@ -363,7 +448,7 @@ class ScriptAPI
   }
   
   /**
-   * Reads string until null (0) byte encounterd.
+   * Reads zero-terminated string.
    */
   public function getNullTerminatedString(file:Int = -1):String
   {
@@ -379,7 +464,7 @@ class ScriptAPI
   }
   
   /**
-   * Reads one line from file.
+   * Reads one line from `file`.
    */
   public function getLine(file:Int = -1):String
   {
@@ -387,7 +472,7 @@ class ScriptAPI
   }
   
   /**
-   * Reads `len` bytes from file.
+   * Reads `len` bytes from `file`.
    */
   public function getBytes(len:Int, file:Int = -1):Bytes
   {
@@ -399,7 +484,20 @@ class ScriptAPI
   //==========================================================
   
   /**
-   * Sets file position to `offset`.
+   * Returns a total size of `file` in bytes.
+   */
+  public function size(file:Int = -1):Int
+  {
+    if (file == -1) file = c.defaultInput;
+    if (c.inputStats.exists(file))
+    {
+      return c.inputStats[file].size;
+    }
+    return -1;
+  }
+  
+  /**
+   * Sets `file` position to `offset`.
    */
   public function goto(offset:Int, file:Int = -1):Void
   {
@@ -407,7 +505,7 @@ class ScriptAPI
   }
   
   /**
-   * Skip `amount` bytes in file.
+   * Skip `amount` bytes in `file`.
    */
   public function skip(amount:Int, file:Int = -1):Void
   {
@@ -415,7 +513,7 @@ class ScriptAPI
   }
   
   /**
-   * Returns current position of file caret.
+   * Returns current position of `file` caret.
    */
   public function position(file:Int = -1):Int
   {
@@ -423,21 +521,40 @@ class ScriptAPI
   }
   
   //==========================================================
+  // HTTP
+  //==========================================================
+  
+  /**
+   * Sends an HTTP request to specified `url` and returns output String.
+   */
+  public function httpGetString(url:String):String
+  {
+    return Http.requestUrl(url);
+  }
+  
+  /**
+   * Sends an HTTP request to specified `url` and returns output Bytes.
+   */
+  public function httpGet(url:String):Bytes
+  {
+    var http:Http = new Http(url);
+    var output:BytesOutput = new BytesOutput();
+    http.customRequest(false, output);
+    return output.getBytes();
+  }
+  
+  //==========================================================
   // Saving.
   //==========================================================
   
   /**
-   * Saves `length` bytes from input file into another file at `path`.
+   * Saves `length` bytes from input `file` into another file at `path`.
    */
   public function saveFile(path:String, length:Int, file:Int = -1):Void
   {
     if (c.outputFolder != null) path = Path.normalize(c.outputFolder + "/" + path);
     var folder:String = Path.directory(path);
-    try
-    {
-      FileSystem.createDirectory(folder);
-    }
-    catch (e:Dynamic) { };
+    if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
     var b:Bytes = input(file).read(length);
     File.saveBytes(path, b);
   }
@@ -449,11 +566,7 @@ class ScriptAPI
   {
     if (c.outputFolder != null) path = Path.normalize(c.outputFolder + "/" + path);
     var folder:String = Path.directory(path);
-    try
-    {
-      FileSystem.createDirectory(folder);
-    }
-    catch (e:Dynamic) { };
+    if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
     File.saveBytes(path, data);
   }
   
@@ -464,14 +577,14 @@ class ScriptAPI
   {
     if (c.outputFolder != null) path = Path.normalize(c.outputFolder + "/" + path);
     var folder:String = Path.directory(path);
-    try
-    {
-      FileSystem.createDirectory(folder);
-    }
-    catch (e:Dynamic) { };
+    if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
     File.saveContent(path, string);
   }
   
+  /**
+   * Assigns a EOF error callback to `file` at specified index.  
+   * If file is closed you need to add callback again.
+   */
   public function eofCallback(fn:Void->Void, file:Int = -1):Void
   {
     if (file == -1) file = c.defaultInput;
@@ -488,7 +601,7 @@ class ScriptAPI
   }
   
   /**
-   * Tells is file exists at `path`.
+   * Tells if file or directory exists at `path`.
    */
   public function fileExists(path:String):Bool
   {
@@ -496,7 +609,7 @@ class ScriptAPI
   }
   
   /**
-   * Tells is `path` exists and is directory.
+   * Checks if given `path` is directory.
    */
   public function isDirectory(path:String):Bool
   {
@@ -504,7 +617,16 @@ class ScriptAPI
   }
   
   /**
-   * Tells is `path` exists and is file.
+   * Checks if given `path` is directory.  
+   * Just a mirror to `isDirectory(path);`.
+   */
+  public function isFolder(path:String):Bool
+  {
+    return isDirectory(path);
+  }
+  
+  /**
+   * Tells is `path` exists and not a directory.
    */
   public function isFile(path:String):Bool
   {
@@ -512,7 +634,8 @@ class ScriptAPI
   }
   
   /**
-   * Terminates script.
+   * Terminates script.  
+   * Currently interrupt by error throw and can be catched by try...catch contruction in script.
    */
   public function exit():Void
   {
