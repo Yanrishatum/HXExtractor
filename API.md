@@ -16,23 +16,27 @@ Returns a *copy* of script arguments.
 `argCount():Int`  
 Returns amount of arguments passed to script.  
 
-`async(fn:Void):Thread`  
-[Advanced usage] Runs `fn` in separated thread. Use at own risk.  
-
 `runScript(path:String, ?args:Null<Array<String>>, ?variables:Null<TDynamic()>):TDynamic()`  
-[Advanced usage] Executes another script at `path` and returns whaterever it retuns.  
+[hxe_allow_run_scripts][Advanced usage] Executes another script at `path` and returns whaterever it retuns.  
 
 `runScriptAsync(path:String, ?args:Null<Array<String>>, ?variables:Null<TDynamic()>):Thread`  
-[Advanced usage] Executes another script at `path` in separate thread.  
+[hxe_allow_threading][hxe_allow_run_scripts][Advanced usage] Executes another script at `path` in separate thread.  
+
+`async(fn:Void):Thread`  
+[hxe_allow_threading][Advanced usage] Runs `fn` in separated thread. Use at own risk.  
 
 `sendToMainThread(msg:TDynamic()):Void`  
-[Advanced usage] Sends message to main thread.  
+[hxe_allow_threading][Advanced usage] Sends message to main thread.  
 
 `readMessage(block:Bool):TDynamic()`  
-[Advanced usage] Reads message from another threads.  
+[hxe_allow_threading][Advanced usage] Reads message from another threads.  
 
 `readFolder(path:String):Array<String>`  
-Reads contents of folder at given `path` and returns file/folder names.  
+Reads contents of a directory at given `path` and returns file/folder names.  
+Same as `readDirectory`.  
+
+`readDirectory(path:String):Array<String>`  
+Reads contents of a directory at given `path` and returns file/folder names.  
 
 `requestOutputFolder(?message:Null<String>):Void`  
 Propmpt user to write default output folder.  
@@ -54,7 +58,8 @@ If file cannot be opened, error is printed and returned index = -1.
 `openInput(path:String, ?index:Int):Int`  
 Opens a file at `path` and returns it's index.
 If `index` specified (default = -1), file will be loaded at that index, otherwise index will be assigned automatically.  
-If file cannot be opened, error is printed and returned index = -1.  
+If file cannot be opened, error is thrown. // TODO: Make it specific error...
+If `hxe_allow_absolute_path` compilation flag wasn't set `path` does not allowed to go outside working directory.  
 
 `closeInput(index:Int):Void`  
 Closes active file at `index`.  
@@ -115,11 +120,21 @@ Asserts value. If false - prints message and terminates script.
 `assertString(string:String, ?file:Int, ?message:Null<String>):Void`  
 Asserts string in input file. If not equals - prints message and terminates script.  
 
+`getInt8(?file:Int):Int`  
+Reads next byte in input `file.  
+Same as `getByte`.  
+
 `getByte(?file:Int):Int`  
 Reads next byte in input `file`.  
+Same as `getInt8`.  
 
 `getInt16(?file:Int):Int`  
-Reads next short in input `file`.  
+Reads next short int in input `file`.  
+Same as `getShort`.  
+
+`getShort(?file:Int):Int`  
+Reads next short int in input `file`.  
+Same as `getInt16`.  
 
 `getInt24(?file:Int):Int`  
 Reads next 3 bytes in input `file`.  
@@ -151,18 +166,31 @@ Returns a total size of `file` in bytes.
 
 `goto(offset:Int, ?file:Int):Void`  
 Sets `file` position to `offset`.  
+Same as `setPosition`.  
+
+`setPosition(offset:Int, ?file:Int):Void`  
+Sets `file` position to `offset`.  
+Same as `goto`.  
 
 `skip(amount:Int, ?file:Int):Void`  
 Skip `amount` bytes in `file`.  
+Same as `offset`.  
+
+`offset(amount:Int, ?file:Int):Void`  
+Skip `amount` bytes in `file`.  
+Same as `skip`.  
 
 `position(?file:Int):Int`  
 Returns current position of `file` caret.  
 
+`inputPath(?index:Int):String`  
+Returns path to input at given `index`.  
+
 `httpGetString(url:String):String`  
-Sends an HTTP request to specified `url` and returns output String.  
+[hxe_allow_http] Sends an HTTP GET request to specified `url` and returns output String.  
 
 `httpGet(url:String):Bytes`  
-Sends an HTTP request to specified `url` and returns output Bytes.  
+[hxe_allow_http] Sends an HTTP GET request to specified `url` and returns output Bytes.  
 
 `saveFile(path:String, length:Int, ?file:Int):Void`  
 Saves `length` bytes from input `file` into another file at `path`.  
@@ -174,8 +202,8 @@ Saves Bytes at specified `path`.
 Saves String at specified `path`.  
 
 `eofCallback(fn:Void, ?file:Int):Void`  
-Assigns a EOF error callback to `file` at specified index.  
-If file is closed you need to add callback again.  
+Assigns an EOF error callback to `file` at specified index.  
+If you reopen file at that index, eof callbacks should be added again.  
 
 `fileExists(path:String):Bool`  
 Tells if file or directory exists at `path`.  
@@ -195,32 +223,94 @@ Terminates script.
 Currently interrupt by error throw and can be catched by try...catch contruction in script.  
 
 ### ImageGen class
-...
+Image generation class. Can be used to rasterize some data and save it as PNG file.
 #### Functions
 `draw(source:Int, sx:Int, sy:Int, dx:Int, dy:Int, w:Int, h:Int):Void`  
-No docs available  
+Draws image at `source` index onto canvas.
+@param source Source image index.
+@param sx X offset on Source image.
+@param sy Y offset on Source image.
+@param dx X position of copied pixels on Canvas.
+@param dy Y position of copied pixels on Canvas.
+@param w Width of copied area.
+@param h Height of copied area.  
 
 `fillAlpha(x:Int, y:Int, w:Int, h:Int, alpha:Int):Void`  
-No docs available  
+Sets `alpha` velues onto canvas rectangle to desired value.  
+Does not changing R/G/B values.  
 
 `fill(x:Int, y:Int, w:Int, h:Int, color:Int):Void`  
-No docs available  
+Fills given rectangle on canvas with given ARGB `color`.  
+
+`setPixel(x:Int, y:Int, color:Int):Void`  
+Sets pixel on canvas with given ARGB `color`.  
 
 `addCommands(other:ImageGen):Void`  
-No docs available  
+Copies commands from other ImageGen instance.  
+
+`clearCanvas():Void`  
+Removes any draw commands.  
+
+`undo():Void`  
+Removes last draw command.  
 
 `loadPng(path:String):Int`  
-No docs available  
+Loads PNG file at `path` and returns it's internal source index.  
+
+`loadBytes(bytes:Bytes, width:Int, height:Int):Int`  
+Loads source image from code. Pixels should be in BGRA format.  
+This functions does not have Bytes size checks, use at own risk.  
 
 `setTransparentColor(source:Int, transparent:Int):Void`  
-No docs available  
+Replaces alpha channel of all pixels that equals to `transparent` color on `source` image to zero.  
+This is permanent function.  
 
 `save(path:String):Void`  
-No docs available  
+Saves output PNG image at `path`.  
+Note that this function ignores outputFolder settings for your scripts.  
+If you need to save it regarding that folder, use `ImageGen.outputPng` and `saveBytes` functions.  
+
+`outputPixels():Bytes`  
+Returns rendered pixels in BGRA format.  
+
+`outputPng():Bytes`  
+Returns resulting PNG image data.  
+
+`outputData():PixelData`  
+Returns object with format `{ pixels:Bytes, width:Int, height:Int }`.  
+(faster) Analogue of `outputPixels()`, `outputWidth()` and `outputHeight()` fundions.
+@return  
+
+`outputWidth():Int`  
+Returns current width size of canvas.  
+
+`outputHeight():Int`  
+Returns current height of canvas.  
 
 `sourceWidth(?index:Int):Int`  
-No docs available  
+Returns width of source image at `index`.  
 
 `sourceHeight(?index:Int):Int`  
+Returns height of source image at `index`.  
+
+### GifGen class
+...
+#### Functions
+`start():Void`  
+No docs available  
+
+`addIndexes(pixels:Bytes, x:Int, y:Int, width:Int, height:Int, ?delay:Int, ?disposalMethod:Null<DisposalMethod>, ?pal:Null<Bytes>, ?transparentIndex:Null<Int>):Void`  
+No docs available  
+
+`setGlobalColorTable(table:Array<Int>):Void`  
+No docs available  
+
+`setBackgroundIndex(index:Int):Void`  
+No docs available  
+
+`setLoops(amount:Int):Void`  
+No docs available  
+
+`finish():Bytes`  
 No docs available  
 

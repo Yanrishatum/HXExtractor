@@ -33,6 +33,10 @@ class Main
     "StringTools" => StringTools,
     "Path" => Path,
     "ImageGen" => ImageGen,
+    #if hxe_enable_GifGen
+    "GifGen" => GifGen,
+    "DisposalMethod" => format.gif.Data.DisposalMethod,
+    #end
     "Std" => Std,
     "Reflect" => Reflect,
     "EReg" => EReg,

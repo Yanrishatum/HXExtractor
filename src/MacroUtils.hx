@@ -1,4 +1,5 @@
 package;
+import haxe.macro.Compiler;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
@@ -17,6 +18,15 @@ typedef ClassInfo =
  */
 class MacroUtils
 {
+  
+  public static function enableAllFlags():Void
+  {
+    Compiler.define("hxe_allow_absolute_path", "1");
+    Compiler.define("hxe_allow_http", "1");
+    Compiler.define("hxe_allow_threading", "1");
+    Compiler.define("hxe_allow_run_scripts", "1");
+    Compiler.define("hxe_enable_GifGen", "1");
+  }
 
   public static macro function makeApiMd():Void
   {
@@ -28,18 +38,22 @@ class MacroUtils
     [
       { name:"ScriptAPI", disp:"Scripting API", hideConstructor:true },
       { name:"ImageGen", disp:"@" },
-      //{ name:"Math", disp:"@" },
-      //{ name:"StringTools", disp: "@" },
-      //{ name:"haxe.io.Path", disp:"Path class" },
-      //{ name:"Std", disp:"@" },
-      //{ name:"Reflect", disp:"@" },
-      //{ name:"EReg", disp:"EReg (Regular Expression) class" },
-      //{ name:"Xml", disp: "@" },
-      //{ name:"haxe.Json", disp:"@" },
-      //{ name:"String", disp:"@" },
-      //{ name:"Sys", disp:"@" }
+      // { name:"Math", disp:"@" },
+      // { name:"StringTools", disp: "@" },
+      // { name:"haxe.io.Path", disp:"Path class" },
+      // { name:"Std", disp:"@" },
+      // { name:"Reflect", disp:"@" },
+      // { name:"EReg", disp:"EReg (Regular Expression) class" },
+      // { name:"Xml", disp: "@" },
+      // { name:"haxe.Json", disp:"@" },
+      // { name:"String", disp:"@" },
+      // { name:"Sys", disp:"@" }
       // File and FileSystem doesn't documented.
     ];
+    if (Context.defined("hxe_enable_GifGen"))
+    {
+      classes.push( { name:"GifGen", disp:"@" } );
+    }
     
     for (info in classes)
     {

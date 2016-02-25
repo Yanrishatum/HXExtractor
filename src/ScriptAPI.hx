@@ -35,6 +35,17 @@ class ScriptAPI
     return c.inputs[id == -1 ? c.defaultInput : id];
   }
   
+  @:extern
+  public static inline function checkAbsolutePath(path:String):Void
+  {
+    #if !hxe_allow_absolute_path
+    if (Path.isAbsolute(path) || Path.normalize(path).indexOf("..") != -1)
+    {
+      throw "Going out of working directory does not allowed until `hxe_allow_absolute_path` compilation flag set.";
+    }
+    #end
+  }
+  
   /**
    * Allocates `len` bytes.
    */
@@ -71,8 +82,38 @@ class ScriptAPI
   // Advanced usage and multithreading.
   //==========================================================
   
+  #if hxe_allow_run_scripts
+  
   /**
-   * [Advanced usage] Runs `fn` in separated thread. Use at own risk.
+   * [hxe_allow_run_scripts][Advanced usage] Executes another script at `path` and returns whaterever it retuns.
+   */
+  public function runScript(path:String, args:Array<String> = null, variables:Dynamic = null):Dynamic
+  {
+    checkAbsolutePath(path);
+    var container:ScriptContainer = ScriptContainer.create(path, args, variables);
+    return container.execute();
+  }
+  
+  #if hxe_allow_threading
+  
+  /**
+   * [hxe_allow_threading][hxe_allow_run_scripts][Advanced usage] Executes another script at `path` in separate thread.
+   */
+  public function runScriptAsync(path:String, args:Array<String> = null, variables:Dynamic = null):Thread
+  {
+    checkAbsolutePath(path);
+    var container:ScriptContainer = ScriptContainer.create(path, args, variables);
+    return Thread.create(container.voidExecute);
+  }
+  
+  #end
+  
+  #end
+  
+  #if hxe_allow_threading
+  
+  /**
+   * [hxe_allow_threading][Advanced usage] Runs `fn` in separated thread. Use at own risk.
    */
   public function async(fn:Void->Void):Thread
   {
@@ -80,25 +121,7 @@ class ScriptAPI
   }
   
   /**
-   * [Advanced usage] Executes another script at `path` and returns whaterever it retuns.
-   */
-  public function runScript(path:String, args:Array<String> = null, variables:Dynamic = null):Dynamic
-  {
-    var container:ScriptContainer = ScriptContainer.create(path, args, variables);
-    return container.execute();
-  }
-  
-  /**
-   * [Advanced usage] Executes another script at `path` in separate thread.
-   */
-  public function runScriptAsync(path:String, args:Array<String> = null, variables:Dynamic = null):Thread
-  {
-    var container:ScriptContainer = ScriptContainer.create(path, args, variables);
-    return Thread.create(container.voidExecute);
-  }
-  
-  /**
-   * [Advanced usage] Sends message to main thread.
+   * [hxe_allow_threading][Advanced usage] Sends message to main thread.
    */
   public function sendToMainThread(msg:Dynamic):Void
   {
@@ -106,22 +129,35 @@ class ScriptAPI
   }
   
   /**
-   * [Advanced usage] Reads message from another threads.
+   * [hxe_allow_threading][Advanced usage] Reads message from another threads.
    */
   public function readMessage(block:Bool):Dynamic
   {
     return Thread.readMessage(block);
   }
   
+  #end
+  
   //==========================================================
   // Input manipulation
   //==========================================================
   
   /**
-   * Reads contents of folder at given `path` and returns file/folder names.
+   * Reads contents of a directory at given `path` and returns file/folder names.  
+   * Same as `readDirectory`.
    */
   public function readFolder(path:String):Array<String>
   {
+    return readDirectory(path);
+  }
+  
+  /**
+   * 
+   * Reads contents of a directory at given `path` and returns file/folder names.
+   */
+  public function readDirectory(path:String):Array<String>
+  {
+    checkAbsolutePath(path);
     if (isFolder(path)) return FileSystem.readDirectory(path);
     return null;
   }
@@ -133,16 +169,19 @@ class ScriptAPI
    */
   public function requestOutputFolder(message:String = null):Void
   {
+    var path:String;
     if (c.args.length > 0) // Provided by arguments.
     {
-      c.outputFolder = c.args.shift();
+      path = c.args.shift();
     }
     else
     {
       if (message == null) Sys.print("Specify an output folder: ");
       else Sys.print(message);
-      c.outputFolder = Sys.stdin().readLine();
+      path = Sys.stdin().readLine();
     }
+    checkAbsolutePath(path);
+    c.outputFolder = path;
   }
   
   /**
@@ -193,14 +232,12 @@ class ScriptAPI
   /**
    * Opens a file at `path` and returns it's index.
    * If `index` specified (default = -1), file will be loaded at that index, otherwise index will be assigned automatically.  
-   * If file cannot be opened, error is printed and returned index = -1.
+   * If file cannot be opened, error is thrown. // TODO: Make it specific error...
+   * If `hxe_allow_absolute_path` compilation flag wasn't set `path` does not allowed to go outside working directory.
    */
   public function openInput(path:String, index:Int = -1):Int
   {
-    //if (c.inputNames.exists(path))
-    //{
-      //return c.inputNames.get(path);
-    //}
+    checkAbsolutePath(path);
     
     if (index == -1)
     {
@@ -217,8 +254,7 @@ class ScriptAPI
     }
     catch (e:Dynamic)
     {
-      Sys.println("Error while opening file: " + Std.string(e));
-      return -1;
+      throw "Error while opening file: " + Std.string(e);
     }
   }
   
@@ -398,7 +434,17 @@ class ScriptAPI
   //==========================================================
   
   /**
-   * Reads next byte in input `file`.
+   * Reads next byte in input `file.  
+   * Same as `getByte`.
+   */
+  public function getInt8(file:Int = -1):Int
+  {
+    return input(file).readByte();
+  }
+  
+  /**
+   * Reads next byte in input `file`.  
+   * Same as `getInt8`.
    */
   public function getByte(file:Int = -1):Int
   {
@@ -406,9 +452,19 @@ class ScriptAPI
   }
   
   /**
-   * Reads next short in input `file`.
+   * Reads next short int in input `file`.  
+   * Same as `getShort`.
    */
   public function getInt16(file:Int = -1):Int
+  {
+    return input(file).readInt16();
+  }
+  
+  /**
+   * Reads next short int in input `file`.  
+   * Same as `getInt16`.
+   */
+  public function getShort(file:Int = -1):Int
   {
     return input(file).readInt16();
   }
@@ -480,7 +536,7 @@ class ScriptAPI
   }
   
   //==========================================================
-  // File position
+  // Input information
   //==========================================================
   
   /**
@@ -497,7 +553,8 @@ class ScriptAPI
   }
   
   /**
-   * Sets `file` position to `offset`.
+   * Sets `file` position to `offset`.  
+   * Same as `setPosition`.
    */
   public function goto(offset:Int, file:Int = -1):Void
   {
@@ -505,11 +562,30 @@ class ScriptAPI
   }
   
   /**
-   * Skip `amount` bytes in `file`.
+   * Sets `file` position to `offset`.  
+   * Same as `goto`.
+   */
+  public function setPosition(offset:Int, file:Int = -1):Void
+  {
+    goto(offset, file);
+  }
+  
+  /**
+   * Skip `amount` bytes in `file`.  
+   * Same as `offset`.
    */
   public function skip(amount:Int, file:Int = -1):Void
   {
     input(file).seek(amount, FileSeek.SeekCur);
+  }
+  
+  /**
+   * Skip `amount` bytes in `file`.  
+   * Same as `skip`.
+   */
+  public function offset(amount:Int, file:Int = -1):Void
+  {
+    skip(amount, file);
   }
   
   /**
@@ -520,12 +596,27 @@ class ScriptAPI
     return input(file).tell();
   }
   
+  /**
+   * Returns path to input at given `index`.
+   */
+  public function inputPath(index:Int = -1):String
+  {
+    if (index == -1) index = c.defaultInput;
+    for (name in c.inputNames.keys())
+    {
+      if (c.inputNames[name] == index) return name;
+    }
+    return null;
+  }
+  
   //==========================================================
   // HTTP
   //==========================================================
   
+  #if hxe_allow_http
+  
   /**
-   * Sends an HTTP request to specified `url` and returns output String.
+   * [hxe_allow_http] Sends an HTTP GET request to specified `url` and returns output String.
    */
   public function httpGetString(url:String):String
   {
@@ -533,7 +624,7 @@ class ScriptAPI
   }
   
   /**
-   * Sends an HTTP request to specified `url` and returns output Bytes.
+   * [hxe_allow_http] Sends an HTTP GET request to specified `url` and returns output Bytes.
    */
   public function httpGet(url:String):Bytes
   {
@@ -542,6 +633,8 @@ class ScriptAPI
     http.customRequest(false, output);
     return output.getBytes();
   }
+  
+  #end
   
   //==========================================================
   // Saving.
@@ -552,7 +645,8 @@ class ScriptAPI
    */
   public function saveFile(path:String, length:Int, file:Int = -1):Void
   {
-    if (c.outputFolder != null) path = Path.normalize(c.outputFolder + "/" + path);
+    if (c.outputFolder != null) path = Path.join([c.outputFolder, path]);
+    checkAbsolutePath(path);
     var folder:String = Path.directory(path);
     if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
     var b:Bytes = input(file).read(length);
@@ -564,7 +658,8 @@ class ScriptAPI
    */
   public function saveBytes(path:String, data:Bytes):Void
   {
-    if (c.outputFolder != null) path = Path.normalize(c.outputFolder + "/" + path);
+    if (c.outputFolder != null) path = Path.join([c.outputFolder, path]);
+    checkAbsolutePath(path);
     var folder:String = Path.directory(path);
     if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
     File.saveBytes(path, data);
@@ -575,15 +670,16 @@ class ScriptAPI
    */
   public function saveString(path:String, string:String):Void
   {
-    if (c.outputFolder != null) path = Path.normalize(c.outputFolder + "/" + path);
+    if (c.outputFolder != null) path = Path.join([c.outputFolder, path]);
+    checkAbsolutePath(path);
     var folder:String = Path.directory(path);
     if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
     File.saveContent(path, string);
   }
   
   /**
-   * Assigns a EOF error callback to `file` at specified index.  
-   * If file is closed you need to add callback again.
+   * Assigns an EOF error callback to `file` at specified index.  
+   * If you reopen file at that index, eof callbacks should be added again.
    */
   public function eofCallback(fn:Void->Void, file:Int = -1):Void
   {
@@ -605,6 +701,7 @@ class ScriptAPI
    */
   public function fileExists(path:String):Bool
   {
+    checkAbsolutePath(path);
     return FileSystem.exists(path);
   }
   
@@ -613,6 +710,7 @@ class ScriptAPI
    */
   public function isDirectory(path:String):Bool
   {
+    checkAbsolutePath(path);
     return FileSystem.exists(path) && FileSystem.isDirectory(path);
   }
   
@@ -622,6 +720,7 @@ class ScriptAPI
    */
   public function isFolder(path:String):Bool
   {
+    checkAbsolutePath(path);
     return isDirectory(path);
   }
   
@@ -630,6 +729,7 @@ class ScriptAPI
    */
   public function isFile(path:String):Bool
   {
+    checkAbsolutePath(path);
     return FileSystem.exists(path) && !FileSystem.isDirectory(path);
   }
   
