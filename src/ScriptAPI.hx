@@ -535,6 +535,22 @@ class ScriptAPI
     return input(file).read(len);
   }
   
+  /**
+   * Reads float from `file`.
+   */
+  public function getFloat(file:Int = -1):Float
+  {
+    return input(file).readFloat();
+  }
+  
+  /**
+   * Reads double from `file`.
+   */
+  public function getDouble(file:Int = -1):Float
+  {
+    return input(file).readDouble();
+  }
+  
   //==========================================================
   // Input information
   //==========================================================
@@ -620,7 +636,46 @@ class ScriptAPI
    */
   public function httpGetString(url:String):String
   {
-    return Http.requestUrl(url);
+    var redirectChain:String = url;
+    var output:String;
+    var http:Http = null;
+    
+    function redirectCheck(status:Int):Void
+    {
+      if (status == 301)
+      {
+        // Redirect
+        redirectChain = http.responseHeaders.get("Location");
+      }
+    }
+    
+    function onData(data:String):Void
+    {
+      output = data;
+    }
+    
+    function onError(e:String):Void
+    {
+      throw e;
+    }
+    
+    do
+    {
+      url = redirectChain;
+      redirectChain = null;
+      
+      http = new Http(url);
+      output = null;
+      http.onData = onData;
+      http.onError = onError;
+      http.onStatus = redirectCheck;
+      http.request(false);
+    }
+    while (redirectChain != null);
+    
+    return output;
+    
+    //return Http.requestUrl(url);
   }
   
   /**
@@ -628,9 +683,32 @@ class ScriptAPI
    */
   public function httpGet(url:String):Bytes
   {
-    var http:Http = new Http(url);
-    var output:BytesOutput = new BytesOutput();
-    http.customRequest(false, output);
+    var redirectChain:String = url;
+    var output:BytesOutput;
+    var http:Http = null;
+    
+    function redirectCheck(status:Int):Void
+    {
+      if (status == 301)
+      {
+        // Redirect
+        redirectChain = http.responseHeaders.get("Location");
+      }
+    }
+    
+    do
+    {
+      url = redirectChain;
+      redirectChain = null;
+      
+      http = new Http(url);
+      output = new BytesOutput();
+      
+      http.onStatus = redirectCheck;
+      http.customRequest(false, output);
+    }
+    while (redirectChain != null);
+    
     return output.getBytes();
   }
   

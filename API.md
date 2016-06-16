@@ -161,6 +161,12 @@ Reads one line from `file`.
 `getBytes(len:Int, ?file:Int):Bytes`  
 Reads `len` bytes from `file`.  
 
+`getFloat(?file:Int):Float`  
+Reads float from `file`.  
+
+`getDouble(?file:Int):Float`  
+Reads double from `file`.  
+
 `size(?file:Int):Int`  
 Returns a total size of `file` in bytes.  
 
