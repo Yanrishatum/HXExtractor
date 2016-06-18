@@ -19,13 +19,12 @@ Allows invoking script files from code.
 
 `hxe_enable_GifGen`  
 Enables usage of GifGen class.  
-This class using not-yet-official `format.gif.Writer`. It available in my fork: https://github.com/Yanrishatum/format
 
 ## Building from source
 
 ### Dependencies:
 `hscript`, [git](https://github.com/haxefoundation/hscript) version.  
-`format`, My [fork](https://github.com/Yanrishatum/format) of it, if you use `hxe_enable_GifGen`.
+`format`, [git](https://github.com/haxefoundation/format) version, if you use `hxe_enable_GifGen` (stable will do as soon as they release version with `git.format.Writer` included).
 
 ### Flags:
 ```
