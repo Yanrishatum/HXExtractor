@@ -30,7 +30,6 @@
   <haxelib>
     <library name="hscript" />
     <library name="format:git" />
-    <library name="gif" />
   </haxelib>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>

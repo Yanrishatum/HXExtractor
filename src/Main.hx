@@ -57,6 +57,16 @@ class Main
     if (args.length != 0)
     {
       var scriptPath:String = args[0];
+      if (scriptPath == "-i" || scriptPath == "--interactive")
+      {
+        interactiveParser = new Parser();
+        var scriptArgs:Array<String> = args.copy();
+        scriptArgs.shift();
+        interactiveContainer = new ScriptContainer("Interactive mode", "Sys.println('HXE Interactive Mode');", scriptArgs);
+        interactiveMode();
+        return;
+      }
+      
       if (!FileSystem.exists(scriptPath))
       {
         Sys.println("File not found");
@@ -80,6 +90,21 @@ class Main
       //Sys.println(MacroUtils.makeReadme());
     }
 	}
+  
+  private static var interactiveContainer:ScriptContainer;
+  private static var interactiveParser:Parser;
+  private static function interactiveMode():Void
+  {
+    interactiveContainer.execute();
+    while (true)
+    {
+      Sys.print("> ");
+      var line:String = Sys.stdin().readLine();
+      if (StringTools.startsWith(line, "exit()")) return;
+      var result:Dynamic = interactiveContainer.interp.expr(interactiveParser.parseString(line));
+      Sys.println(result == null ? "null" : Std.string(result));
+    }
+  }
 	
   public static function printError(e:Error, script:String)
   {

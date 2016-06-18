@@ -1,8 +1,8 @@
 @echo off
 cd bin
 if %1 == debug (
-	Main-debug.exe test.hx test.tex
+	Main-debug.exe -i
 ) else (
-	Main.exe
+	Main.exe -i
 )
 pause

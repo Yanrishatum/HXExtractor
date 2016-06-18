@@ -36,7 +36,7 @@ class ScriptContainer
   public var script:Expr;
   public var scriptRaw:String;
   
-  private var interp:CustomInterp;
+  public var interp:CustomInterp;
   
   public var args:Array<String>;
   
