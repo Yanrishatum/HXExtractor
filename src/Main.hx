@@ -1,6 +1,7 @@
 package;
 
 import cpp.Lib;
+import cpp.vm.Lock;
 import cpp.vm.Thread;
 import haxe.io.Eof;
 import haxe.io.Input;
@@ -27,6 +28,9 @@ class Main
   public static var fileNameToFolder:Bool = false;
   public static var onEof:Array<Void->Void>;
   
+  public static var running:Bool;
+  public static var lock:Lock = new Lock();
+  
   public static var quickAccess:Map<String, Dynamic> =
   [
     "Math" => Math,
@@ -45,13 +49,17 @@ class Main
     "String" => String,
     "fromCharCode" => String.fromCharCode,
     "Sys" => Sys,
-    "sys" => { io: { File:File }, FileSystem:FileSystem }
+    "sys" => { io: { File:File }, FileSystem:FileSystem },
+    #if hxe_enable_Audio
+    "Audio" => Audio
+    #end
   ];
   
   public static var thread:Thread;
   
 	static function main() 
 	{
+    running = true;
     thread = Thread.current();
 		var args:Array<String> = Sys.args();
     if (args.length != 0)
@@ -89,6 +97,7 @@ class Main
       //Sys.println("API:");
       //Sys.println(MacroUtils.makeReadme());
     }
+    running = false;
 	}
   
   private static var interactiveContainer:ScriptContainer;

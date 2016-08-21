@@ -16,6 +16,9 @@ Returns a *copy* of script arguments.
 `argCount():Int`  
 Returns amount of arguments passed to script.  
 
+`wait(timeout:Float):Void`  
+No docs available  
+
 `runScript(path:String, ?args:Null<Array<String>>, ?variables:Null<TDynamic()>):TDynamic()`  
 [hxe_allow_run_scripts][Advanced usage] Executes another script at `path` and returns whaterever it retuns.  
 
@@ -198,6 +201,24 @@ Returns path to input at given `index`.
 `httpGet(url:String):Bytes`  
 [hxe_allow_http] Sends an HTTP GET request to specified `url` and returns output Bytes.  
 
+`httpGetResponseHeaders(url:String):Map<String, String>`  
+No docs available  
+
+`ftpCreate(url:String, user:String, pass:String):Ftp`  
+No docs available  
+
+`ftpReadDirectory(url:String, ?user:Null<String>, ?pass:Null<String>):Array<String>`  
+No docs available  
+
+`ftpGet(url:String, ?user:Null<String>, ?pass:Null<String>):Bytes`  
+No docs available  
+
+`ftoGetString(url:String, ?user:Null<String>, ?pass:Null<String>):String`  
+No docs available  
+
+`createOutput(path:String):FileOutput`  
+No docs available  
+
 `saveFile(path:String, length:Int, ?file:Int):Void`  
 Saves `length` bytes from input `file` into another file at `path`.  
 
@@ -223,6 +244,9 @@ Just a mirror to `isDirectory(path);`.
 
 `isFile(path:String):Bool`  
 Tells is `path` exists and not a directory.  
+
+`fileSize(path:String):Int`  
+Tells size of a file at specified path. Make sure you checked that file exists.  
 
 `exit():Void`  
 Terminates script.  

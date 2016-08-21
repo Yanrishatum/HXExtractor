@@ -8,6 +8,7 @@ import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
 import sys.io.FileInput;
+import sys.io.FileOutput;
 import sys.io.FileSeek;
 
 /**
@@ -76,6 +77,11 @@ class ScriptAPI
   public function argCount():Int
   {
     return c.args.length;
+  }
+  
+  public function wait(timeout:Float):Void
+  {
+    Main.lock.wait(timeout);
   }
   
   //==========================================================
@@ -636,44 +642,45 @@ class ScriptAPI
    */
   public function httpGetString(url:String):String
   {
-    var redirectChain:String = url;
-    var output:String;
-    var http:Http = null;
-    
-    function redirectCheck(status:Int):Void
-    {
-      if (status == 301)
-      {
-        // Redirect
-        redirectChain = http.responseHeaders.get("Location");
-      }
-    }
-    
-    function onData(data:String):Void
-    {
-      output = data;
-    }
-    
-    function onError(e:String):Void
-    {
-      throw e;
-    }
-    
-    do
-    {
-      url = redirectChain;
-      redirectChain = null;
-      
-      http = new Http(url);
-      output = null;
-      http.onData = onData;
-      http.onError = onError;
-      http.onStatus = redirectCheck;
-      http.request(false);
-    }
-    while (redirectChain != null);
-    
-    return output;
+    return httpGet(url).toString();
+    //var redirectChain:String = url;
+    //var output:String;
+    //var http:Http = null;
+    //
+    //function redirectCheck(status:Int):Void
+    //{
+      //if (status == 301)
+      //{
+        //// Redirect
+        //redirectChain = http.responseHeaders.get("Location");
+      //}
+    //}
+    //
+    //function onData(data:String):Void
+    //{
+      //output = data;
+    //}
+    //
+    //function onError(e:String):Void
+    //{
+      //throw e;
+    //}
+    //
+    //do
+    //{
+      //url = redirectChain;
+      //redirectChain = null;
+      //
+      //http = new Http(url);
+      //output = null;
+      //http.onData = onData;
+      //http.onError = onError;
+      //http.onStatus = redirectCheck;
+      //http.request(false);
+    //}
+    //while (redirectChain != null);
+    //
+    //return output;
     
     //return Http.requestUrl(url);
   }
@@ -708,8 +715,87 @@ class ScriptAPI
       http.customRequest(false, output);
     }
     while (redirectChain != null);
-    
+    //trace(http.responseHeaders);
     return output.getBytes();
+  }
+  
+  public function httpGetResponseHeaders(url:String):Map<String, String>
+  {
+    var http:Http = new Http(url);
+    http.request(false);
+    return http.responseHeaders;
+  }
+  
+  // TODO: Move it to hxe_allow_ftp or rename flag to hxe_allow_net
+  @:extern
+  private inline function createFTP(url:String, user:String, pass:String):Ftp
+  {
+    var split:Array<String> = url.split("/");
+    if (split[0].toLowerCase() != "ftp:")
+    {
+      trace("Not FTP url");
+      return null;
+    }
+    var host:String = split[2];
+    var port:Null<Int> = null;
+    
+    var portIndex:Int = host.indexOf(":");
+    if (portIndex != -1)
+    {
+      port = Std.parseInt(host.substr(portIndex + 1));
+      host = host.substr(0, portIndex);
+    }
+    
+    var ftp:Ftp = new Ftp(host, port);
+    //ftp.debug = true;
+    ftp.login(user, pass);
+    
+    return ftp;
+  }
+  
+  public function ftpCreate(url:String, user:String, pass:String):Ftp
+  {
+    var ftp:Ftp = createFTP(url, user, pass);
+    if (ftp != null)
+    {
+      var split:Array<String> = url.split("/");
+      var dir:String = split.length == 3 ? "" : split.splice(3, split.length - 3).join("/");
+      if (dir != "") ftp.cwd(dir);
+    }
+    return ftp;
+  }
+  
+  public function ftpReadDirectory(url:String, ?user:String, ?pass:String):Array<String>
+  {
+    var ftp:Ftp = createFTP(url, user, pass);
+    if (ftp == null) return null;
+    //var dir:String = "";
+    var split:Array<String> = url.split("/");
+    var dir:String = split.length == 3 ? "" : split.splice(3, split.length - 3).join("/");
+    var list:Array<String> = ftp.detailedList(dir);
+    ftp.close();
+    return list;
+    //var ftp:Ftp = new 
+  }
+  
+  public function ftpGet(url:String, ?user:String, ?pass:String):Bytes
+  {
+    var ftp:Ftp = createFTP(url, user, pass);
+    if (ftp == null) return null;
+    //var dir:String = "";
+    var split:Array<String> = url.split("/");
+    var dir:String = split.length == 3 ? "" : split.splice(3, split.length - 3).join("/");
+    var out:BytesOutput = new BytesOutput();
+    ftp.get(out, dir);
+    ftp.close();
+    return out.getBytes();
+  }
+  
+  public function ftoGetString(url:String, ?user:String, ?pass:String):String
+  {
+    var bytes:Bytes = ftpGet(url, user, pass);
+    if (bytes == null) return null;
+    return bytes.toString();
   }
   
   #end
@@ -717,6 +803,15 @@ class ScriptAPI
   //==========================================================
   // Saving.
   //==========================================================
+  
+  public function createOutput(path:String):FileOutput
+  {
+    if (c.outputFolder != null) path = Path.join([c.outputFolder, path]);
+    checkAbsolutePath(path);
+    var folder:String = Path.directory(path);
+    if (folder != "" && !FileSystem.exists(folder)) FileSystem.createDirectory(folder);
+    return File.write(path);
+  }
   
   /**
    * Saves `length` bytes from input `file` into another file at `path`.
@@ -809,6 +904,14 @@ class ScriptAPI
   {
     checkAbsolutePath(path);
     return FileSystem.exists(path) && !FileSystem.isDirectory(path);
+  }
+  
+  /**
+   * Tells size of a file at specified path. Make sure you checked that file exists.
+   */
+  public function fileSize(path:String):Int
+  {
+    return FileSystem.stat(path).size;
   }
   
   /**

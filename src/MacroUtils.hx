@@ -26,6 +26,7 @@ class MacroUtils
     Compiler.define("hxe_allow_threading", "1");
     Compiler.define("hxe_allow_run_scripts", "1");
     Compiler.define("hxe_enable_GifGen", "1");
+    Compiler.define("hxe_enable_Audio", "1");
   }
 
   public static macro function makeApiMd():Void

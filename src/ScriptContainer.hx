@@ -1,4 +1,5 @@
 package;
+import cpp.vm.Lock;
 import haxe.CallStack;
 import haxe.io.Eof;
 import haxe.io.Input;
@@ -46,6 +47,7 @@ class ScriptContainer
   
   public static function create(path:String, args:Array<String>, variables:Dynamic):ScriptContainer
   {
+    
     if (!FileSystem.exists(path))
     {
       Sys.println("File not found");
