@@ -84,6 +84,52 @@ class ScriptAPI
     Main.lock.wait(timeout);
   }
   
+  public function optionFlag(name:String):Bool
+  {
+    return c.args.indexOf(name) != -1;
+  }
+  
+  public function hasOption(name:String):Bool
+  {
+    var idx:Int = c.args.indexOf(name);
+    return idx < c.args.length - 1;
+  }
+  
+  public function optionString(name:String, ?def:String):String
+  {
+    var idx:Int = c.args.indexOf(name);
+    if (idx < c.args.length - 1)
+    {
+      return c.args[idx + 1];
+    }
+    return def;
+  }
+  
+  public function optionInt(name:String, def:Int = 0):Int
+  {
+    var str:String = optionString(name);
+    if (str == null) return def;
+    return Std.parseInt(str);
+  }
+  
+  public function optionFloat(name:String, ?def:Float):Float
+  {
+    var str:String = optionString(name);
+    if (str == null) return def;
+    return Std.parseFloat(str);
+  }
+  
+  public function optionBool(name:String, def:Bool = false):Bool
+  {
+    var str:String = optionString(name);
+    if (str == null) return def;
+    if (str.toLowerCase() == "true") return true;
+    var numeric:Null<Int> = Std.parseInt(str);
+    if (numeric != null) return numeric > 0;
+    return def;
+  }
+  
+  
   //==========================================================
   // Advanced usage and multithreading.
   //==========================================================

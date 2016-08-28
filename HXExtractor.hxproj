@@ -19,12 +19,12 @@
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="hscriptPos&#xA;dll_import_link&#xA;verbose" />
+    <option directives="hscriptPos&#xA;static_std" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
     <option mainClass="Main" />
     <option enabledebug="False" />
-    <option additional="-D hscriptPos&#xA;-D dce=no&#xA;--macro MacroUtils.enableAllFlags()&#xA;--macro MacroUtils.makeApiMd()&#xA;-v" />
+    <option additional="-D hscriptPos&#xA;-D dce=no&#xA;--macro MacroUtils.enableAllFlags()&#xA;--macro MacroUtils.makeApiMd()" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
@@ -32,6 +32,7 @@
     <library name="format:git" />
     <library name="linc_openal" />
     <library name="linc_ogg" />
+    <library name="hxcpp" />
   </haxelib>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>

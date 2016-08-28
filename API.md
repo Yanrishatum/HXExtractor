@@ -19,6 +19,24 @@ Returns amount of arguments passed to script.
 `wait(timeout:Float):Void`  
 No docs available  
 
+`optionFlag(name:String):Bool`  
+No docs available  
+
+`hasOption(name:String):Bool`  
+No docs available  
+
+`optionString(name:String, ?def:Null<String>):String`  
+No docs available  
+
+`optionInt(name:String, ?def:Int):Int`  
+No docs available  
+
+`optionFloat(name:String, ?def:Null<Float>):Float`  
+No docs available  
+
+`optionBool(name:String, ?def:Bool):Bool`  
+No docs available  
+
 `runScript(path:String, ?args:Null<Array<String>>, ?variables:Null<TDynamic()>):TDynamic()`  
 [hxe_allow_run_scripts][Advanced usage] Executes another script at `path` and returns whaterever it retuns.  
 

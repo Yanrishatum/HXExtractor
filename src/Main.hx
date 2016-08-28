@@ -14,6 +14,11 @@ import hscript.Parser;
 import sys.FileSystem;
 import sys.io.File;
 import sys.io.FileInput;
+#if static_std
+import hxcpp.StaticStd;
+import hxcpp.StaticZlib;
+import hxcpp.StaticRegexp;
+#end
 
 /**
  * ...
@@ -47,6 +52,7 @@ class Main
     "Xml" => Xml,
     "Json" => Json,
     "String" => String,
+    "StringBuf" => StringBuf,
     "fromCharCode" => String.fromCharCode,
     "Sys" => Sys,
     "sys" => { io: { File:File }, FileSystem:FileSystem },
